@@ -1,0 +1,246 @@
+link: https://app.fabi.ai/notebook/9f83e8fd-894e-4811-9a40-f587e0a42d0a
+uuid: 9f83e8fd-894e-4811-9a40-f587e0a42d0a
+title: 12/5 - analysis
+author: Shivani Mehra
+cells:
+- type: PYTHON
+  name: python_cell_1
+  uuid: b3f8d3e4-afc7-4b84-8fe6-7fcafab33b3b
+  source: |-
+    import pandas as pd
+
+    # Reading Sales_Dataset.csv
+    Sales_Dataset = pd.read_csv("Sales_Dataset.csv")
+    print(f"✓ Loaded Sales_Dataset: {len(Sales_Dataset)} rows")
+    display(Sales_Dataset)
+  configuration: {}
+- type: PYTHON
+  name: clean_and_prepare_data
+  uuid: 85edc948-b9fb-4cb7-a92f-5c3dab91e4b8
+  source: |-
+    import pandas as pd
+
+    # Make a copy of the dataframe to ensure the original is untouched
+    df_cleaned = Sales_Dataset.copy()
+
+    # Convert 'Order Date' to datetime format for time-based analysis
+    df_cleaned["Order Date"] = pd.to_datetime(df_cleaned["Order Date"])
+
+    # Check for and display the number of missing values in each column
+    print("Missing values in each column:")
+    print(df_cleaned.isnull().sum())
+
+    # Remove duplicate rows to ensure data accuracy
+    df_cleaned.drop_duplicates(inplace=True)
+    print(f"\nRemoved duplicates, new shape: {df_cleaned.shape}")
+
+    # Extract year and month from 'Order Date' for filtering and aggregation
+    df_cleaned["Year"] = df_cleaned["Order Date"].dt.year
+    df_cleaned["Month"] = df_cleaned["Order Date"].dt.month
+
+    print("\nData cleaning and preparation complete.")
+    display(df_cleaned)
+  configuration:
+    conditional_formatting: null
+    title: null
+    description: null
+- type: PYTHON
+  name: plot_monthly_profit_margin_trends
+  uuid: cd5da21c-f94f-46aa-a841-1bd924a7123f
+  source: |-
+    import pandas as pd
+    import altair as alt
+
+    # Calculate monthly profit and revenue
+    monthly_profit_margin = (
+        df_cleaned.groupby(["Year", "Month"])
+        .agg(Total_Profit=("Profit", "sum"), Total_Revenue=("Amount", "sum"))
+        .reset_index()
+    )
+
+    # Calculate the profit margin for each month
+    monthly_profit_margin["Profit_Margin"] = (
+        monthly_profit_margin["Total_Profit"] / monthly_profit_margin["Total_Revenue"]
+    ) * 100
+
+    # Create a 'Date' column for proper time-series plotting
+    monthly_profit_margin["Date"] = pd.to_datetime(
+        monthly_profit_margin[["Year", "Month"]].assign(day=1)
+    )
+
+    # Create the line chart to show the trend of monthly profit margin
+    profit_margin_trend_chart = (
+        alt.Chart(monthly_profit_margin)
+        .mark_line(point=True)
+        .encode(
+            x=alt.X("Date:T", title="Month"),
+            y=alt.Y("Profit_Margin:Q", title="Profit Margin (%)"),
+            tooltip=["Date:T", "Profit_Margin:Q"],
+        )
+        .properties(title="Monthly Profit Margin Trend")
+    )
+
+    display(profit_margin_trend_chart)
+  configuration:
+    conditional_formatting: null
+    title: null
+    description: null
+- type: PYTHON
+  name: plot_yearly_sales
+  uuid: c237d42b-4ec2-4b99-bf4f-355b6eef615e
+  source: |-
+    import altair as alt
+    import pandas as pd
+
+    # Group data by year to analyze yearly sales performance
+    yearly_sales = df_cleaned.groupby("Year")["Amount"].sum().reset_index()
+
+    # Create a bar chart to visualize yearly sales performance
+    chart = (
+        alt.Chart(yearly_sales)
+        .mark_bar()
+        .encode(
+            x=alt.X("Year:O", title="Year"),
+            y=alt.Y("Amount:Q", title="Total Sales"),
+            tooltip=["Year", "Amount"],
+        )
+        .properties(title="Yearly Sales Performance")
+    )
+
+    display(chart)
+  configuration: {}
+- type: PYTHON
+  name: plot_regional_contribution
+  uuid: da8057bd-6d63-48b7-8cd1-a7ae971b6266
+  source: |-
+    import altair as alt
+
+    # Group data by state to analyze region-wise performance
+    region_performance = df_cleaned.groupby("State")["Amount"].sum().reset_index()
+
+    # Create a pie chart to visualize region-wise performance
+    chart = (
+        alt.Chart(region_performance)
+        .mark_arc()
+        .encode(
+            theta=alt.Theta(field="Amount", type="quantitative"),
+            color=alt.Color(field="State", type="nominal"),
+            tooltip=["State", "Amount"],
+        )
+        .properties(title="Region-wise Performance")
+    )
+
+    display(chart)
+  configuration: {}
+- type: PYTHON
+  name: plot_category_distribution
+  uuid: 22b7f1be-5660-4fe8-8003-020362345e17
+  source: |-
+    import altair as alt
+    import pandas as pd
+
+    # Group data by category to analyze category-wise distribution
+    category_distribution = df_cleaned["Category"].value_counts().reset_index()
+    category_distribution.columns = ["Category", "Count"]
+
+    # Create a bar chart to visualize the category distribution
+    chart = (
+        alt.Chart(category_distribution)
+        .mark_bar()
+        .encode(
+            x=alt.X("Category:N", title="Category"),
+            y=alt.Y("Count:Q", title="Count"),
+            tooltip=["Category", "Count"],
+        )
+        .properties(title="Distribution of Categories")
+    )
+
+    display(chart)
+  configuration:
+    conditional_formatting: null
+    title: null
+    description: null
+- type: PYTHON
+  name: python_cell_2
+  uuid: 50085a46-bac6-4419-95ce-bc3d2bf35f7d
+  source: |-
+    import altair as alt
+    import pandas as pd
+
+    # Group data by payment mode to analyze its distribution
+    payment_mode_distribution = df_cleaned["PaymentMode"].value_counts().reset_index()
+    payment_mode_distribution.columns = ["PaymentMode", "Count"]
+
+    # Create a pie chart to visualize the payment mode distribution
+    chart = (
+        alt.Chart(payment_mode_distribution)
+        .mark_arc()
+        .encode(
+            theta=alt.Theta(field="Count", type="quantitative"),
+            color=alt.Color(field="PaymentMode", type="nominal"),
+            tooltip=["PaymentMode", "Count"],
+        )
+        .properties(title="Distribution of Payment Modes")
+    )
+
+    display(chart)
+  configuration: {}
+- type: PYTHON
+  name: python_cell_3
+  uuid: 055296db-4986-4787-931b-45cda9c7c72f
+  source: |-
+    import altair as alt
+    import pandas as pd
+
+    # Find the most purchased item for each customer
+    most_purchased_item = (
+        df_cleaned.groupby(["CustomerName", "Sub-Category"])
+        .size()
+        .reset_index(name="counts")
+    )
+    idx = most_purchased_item.groupby(["CustomerName"])["counts"].idxmax()
+    top_customers_df = most_purchased_item.loc[idx].nlargest(10, "counts")
+
+
+    # Create the chart
+    chart = (
+        alt.Chart(top_customers_df)
+        .mark_bar()
+        .encode(
+            x=alt.X("CustomerName:N", sort="-y", title="Customer Name"),
+            y=alt.Y("counts:Q", title="Number of Purchases"),
+            color=alt.Color("Sub-Category:N", title="Most Purchased Item"),
+            tooltip=["CustomerName", "Sub-Category", "counts"],
+        )
+        .properties(title="Top 10 Customers and Their Most Purchased Item")
+    )
+
+    display(chart)
+  configuration: {}
+- type: PYTHON
+  name: python_cell_4
+  uuid: 63b6990c-b723-4366-af5c-372ccccb2c91
+  source: |-
+    import altair as alt
+    import pandas as pd
+
+    # Find the most purchased items overall
+    most_purchased_items = (
+        df_cleaned["Sub-Category"].value_counts().nlargest(10).reset_index()
+    )
+    most_purchased_items.columns = ["Sub-Category", "Count"]
+
+    # Create the chart
+    chart = (
+        alt.Chart(most_purchased_items)
+        .mark_bar()
+        .encode(
+            x=alt.X("Sub-Category:N", sort="-y", title="Item"),
+            y=alt.Y("Count:Q", title="Number of Purchases"),
+            tooltip=["Sub-Category", "Count"],
+        )
+        .properties(title="Top 10 Most Purchased Items")
+    )
+
+    display(chart)
+  configuration: {}
